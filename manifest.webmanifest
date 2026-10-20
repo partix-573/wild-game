@@ -1,0 +1,19 @@
+{
+  "name": "WildWest MATRIX — Halloween Edition",
+  "short_name": "MATRIX",
+  "description": "WildWest MATRIX — Halloween Edition",
+  "start_url": "./WildWest-MATRIX-Online-PWA.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#241329",
+  "theme_color": "#241329",
+  "icons": [
+    {
+      "src": "./icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

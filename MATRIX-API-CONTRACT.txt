@@ -1,0 +1,17 @@
+WildWest MATRIX — серверный контракт
+
+HTML поддерживает подключаемый window.MATRIX_API. Без него работает старый локальный режим.
+Серверный скрипт должен определить методы:
+window.MATRIX_API = {
+  invitePlayer: async ({from, fromName, to, toName}) => { /* отправить приглашение в БД */ },
+  acceptInvite: async ({accountKey, ownerKey, accept}) => { /* принять/отклонить приглашение */ },
+  joinLobby: async ({accountKey, ownerKey, ownerName}) => { /* вступить в лобби */ },
+  saveProfile: async ({accountKey, profile, team}) => { /* сохранить профиль */ },
+  getInvites: async ({accountKey}) => { /* вернуть {invites: [...]} */ }
+};
+Методы должны возвращать JSON-совместимые объекты; acceptInvite/joinLobby могут вернуть {account: {...}}.
+Обязательно проверяйте авторизацию и права на сервере. Не отправляйте пароли в профиль. accountKey от клиента нельзя считать подтверждением личности.
+
+Это точка подключения, не готовая БД: для общей игры сервер должен реализовать эти методы и подключить базу данных.
+
+PWA: положите HTML, manifest.webmanifest, sw.js и icon.svg рядом на Vercel по HTTPS. На Android в Chrome: меню ⋮ → «Установить приложение» / «Добавить на главный экран».
