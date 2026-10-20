@@ -282,7 +282,7 @@
 </div>
 
 <script>
-    // --- 1. Полные данные Классов и Монстров из вашего исходного проекта ---
+    // --- 1. Данные Классов и Монстров ---
     const classesData = [
         { name: "Шериф", desc: "Служитель закона с револьвером. Повышенный урон по ночным монстрам.", abilities: ["Точный выстрел", "Арест нежити"] },
         { name: "Охотник за головами", desc: "Меткий стрелок Дикого Запада. Получает бонус за зачистку монстров.", abilities: ["Метка цели", "Быстрый взвод"] },
@@ -342,4 +342,55 @@
     function registerAccount() {
         const name = document.getElementById('account-name').value.trim();
         if(!name) return alert('Введите никнейм!');
-        document.getElementById('user-display-name').innerText = name;
+        
+        const displayElem = document.getElementById('user-display-name');
+        if (displayElem) displayElem.innerText = name;
+
+        document.getElementById('account-screen').classList.remove('active');
+        document.getElementById('main-screen').classList.add('active');
+        renderReference();
+    }
+
+    // --- 4. Логика Раунда и Шара XP ---
+    let orbXp = 0;
+    let lastTap = 0;
+
+    function tapExperienceOrb() {
+        const now = Date.now();
+        if (now - lastTap < 400) {
+            document.getElementById('orb-status').innerText = 'Слишком часто!';
+            return;
+        }
+        lastTap = now;
+        orbXp += 0.1;
+        document.getElementById('orb-xp-total').innerText = orbXp.toFixed(1);
+        document.getElementById('orb-status').innerText = '+0.1 XP!';
+    }
+
+    function startRound() {
+        const rand = monstersData[Math.floor(Math.random() * monstersData.length)].name;
+        document.getElementById('selected-monster').innerText = rand;
+    }
+
+    function stopTimer() {
+        document.getElementById('selected-monster').innerText = "[ Ожидание старта ]";
+    }
+
+    // --- 5. PWA Установка ---
+    let deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('pwa-install-btn-main')?.classList.remove('hidden');
+        document.getElementById('pwa-install-btn-settings')?.classList.remove('hidden');
+    });
+
+    function triggerPWAInstall() {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            deferredPrompt = null;
+        }
+    }
+</script>
+</body>
+</html>
