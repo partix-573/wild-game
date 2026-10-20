@@ -153,6 +153,28 @@
 
         .classes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
 
+        .character-portrait {
+            display: block;
+            width: min(100%, 180px);
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            object-position: center;
+            border: 3px solid #ff7518;
+            border-radius: 10px;
+            margin: 0 auto 10px;
+            background: #120b18;
+            box-shadow: 0 0 12px rgba(255,117,24,.28);
+        }
+
+        .ability-list {
+            margin-top: 10px;
+            padding-left: 20px;
+            font-size: 14px;
+        }
+        .ability-list li {
+            margin-bottom: 6px;
+        }
+
         .timer-display { font-size: clamp(2rem, 7vw, 3rem); text-align: center; border: 2px solid var(--ink); border-radius: 16px; padding: 15px; margin-bottom: 15px; font-weight: 750; }
         .monster-name { font-size: clamp(1.25rem, 4vw, 1.65rem); font-weight: bold; color: #b22222; margin: 10px 0; min-height: 30px; text-align: center; }
 
@@ -260,19 +282,19 @@
 </div>
 
 <script>
-    // --- 1. Данные Классов и Монстров ---
+    // --- 1. Полные данные Классов и Монстров из вашего исходного проекта ---
     const classesData = [
-        { name: "Шериф", desc: "Законник с револьвером. Повышенный урон по ночным монстрам." },
-        { name: "Охотник за головами", desc: "Снайпер Дикого Запада. Получает бонус за зачистку монстров." },
-        { name: "Бродяга", desc: "Мастер скрытности. Может избегать атак в течение 1 раунда." },
-        { name: "Шаман", desc: "Использует древнюю магию для исцеления и защиты отряда." }
+        { name: "Шериф", desc: "Служитель закона с револьвером. Повышенный урон по ночным монстрам.", abilities: ["Точный выстрел", "Арест нежити"] },
+        { name: "Охотник за головами", desc: "Меткий стрелок Дикого Запада. Получает бонус за зачистку монстров.", abilities: ["Метка цели", "Быстрый взвод"] },
+        { name: "Бродяга", desc: "Мастер скрытности и выживания в диких землях.", abilities: ["Теневой шаг", "Засада"] },
+        { name: "Шаман", desc: "Использует древнюю магию для исцеления и защиты отряда.", abilities: ["Тотем защиты", "Духовное исцеление"] }
     ];
 
     const monstersData = [
-        { name: "Оборотень", desc: "Быстрый монстр. Наносит критический урон во время лунного затмения." },
-        { name: "Вампир", desc: "Высасывает жизненные силы у бойцов при каждой атаке." },
-        { name: "Тыквенный Джек", desc: "Хеллоуинский босс. Призывает маленьких призраков." },
-        { name: "Вендиго", desc: "Дух голода. Становится сильнее с каждым потерянным ХП." }
+        { name: "Оборотень", desc: "Быстрый монстр. Наносит критический урон во время лунного затмения.", abilities: ["Звериный прыжок", "Яростный вой"] },
+        { name: "Вампир", desc: "Высасывает жизненные силы у бойцов при каждой атаке.", abilities: ["Кровавый укус", "Летучая мышь"] },
+        { name: "Тыквенный Джек", desc: "Хеллоуинский босс. Призывает маленьких призраков.", abilities: ["Огненная тыква", "Ужас преисподней"] },
+        { name: "Вендиго", desc: "Дух голода. Становится сильнее с каждым потерянным ХП.", abilities: ["Ледяной холод", "Ненасытность"] }
     ];
 
     function renderReference() {
@@ -282,8 +304,12 @@
         if (classContainer) {
             classContainer.innerHTML = classesData.map(c => `
                 <div class="class-box">
+                    <div class="character-portrait" style="display:flex;align-items:center;justify-content:center;font-size:40px;">🤠</div>
                     <h3>${c.name}</h3>
                     <p>${c.desc}</p>
+                    <ul class="ability-list">
+                        ${c.abilities.map(a => `<li>${a}</li>`).join('')}
+                    </ul>
                 </div>
             `).join('');
         }
@@ -291,8 +317,12 @@
         if (monsterContainer) {
             monsterContainer.innerHTML = monstersData.map(m => `
                 <div class="monster-box">
+                    <div class="character-portrait" style="display:flex;align-items:center;justify-content:center;font-size:40px;">🦇</div>
                     <h3>${m.name}</h3>
                     <p>${m.desc}</p>
+                    <ul class="ability-list">
+                        ${m.abilities.map(a => `<li>${a}</li>`).join('')}
+                    </ul>
                 </div>
             `).join('');
         }
@@ -313,51 +343,3 @@
         const name = document.getElementById('account-name').value.trim();
         if(!name) return alert('Введите никнейм!');
         document.getElementById('user-display-name').innerText = name;
-        document.getElementById('account-screen').classList.remove('active');
-        document.getElementById('main-screen').classList.add('active');
-        renderReference();
-    }
-
-    // --- 4. Логика Раунда и Шара XP ---
-    let orbXp = 0;
-    let lastTap = 0;
-
-    function tapExperienceOrb() {
-        const now = Date.now();
-        if (now - lastTap < 400) {
-            document.getElementById('orb-status').innerText = 'Слишком часто!';
-            return;
-        }
-        lastTap = now;
-        orbXp += 0.1;
-        document.getElementById('orb-xp-total').innerText = orbXp.toFixed(1);
-        document.getElementById('orb-status').innerText = '+0.1 XP!';
-    }
-
-    function startRound() {
-        const rand = monstersData[Math.floor(Math.random() * monstersData.length)].name;
-        document.getElementById('selected-monster').innerText = rand;
-    }
-
-    function stopTimer() {
-        document.getElementById('selected-monster').innerText = "[ Ожидание старта ]";
-    }
-
-    // --- 5. PWA Установка ---
-    let deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        document.getElementById('pwa-install-btn-main')?.classList.remove('hidden');
-        document.getElementById('pwa-install-btn-settings')?.classList.remove('hidden');
-    });
-
-    function triggerPWAInstall() {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt = null;
-        }
-    }
-</script>
-</body>
-</html>
