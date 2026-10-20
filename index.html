@@ -11,8 +11,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="WildWest">
-    
-    <!-- Embedded Manifest Data URL -->
     <link rel="manifest" id="manifest-placeholder">
 
     <link href="https://fonts.googleapis.com/css2?family=Special+Elite&display=swap" rel="stylesheet">
@@ -23,110 +21,75 @@
             --ink: #1a120b;
             --ink-faded: #4a3828;
             --body-bg: #2b1f14;
-            --ui-radius: 16px;
-            --ui-radius-sm: 11px;
-            --ui-shadow: 0 14px 34px rgba(0,0,0,.28);
-            --ui-glow: color-mix(in srgb, var(--paper-border) 28%, transparent);
         }
 
+        /* Набор шрифтов интерфейса */
+        body.font-western { font-family: 'Special Elite', cursive, monospace; }
+        body.font-classic { font-family: Georgia, 'Times New Roman', serif; }
+        body.font-modern { font-family: Arial, Helvetica, sans-serif; }
+        body.font-rounded { font-family: 'Trebuchet MS', Verdana, sans-serif; }
+        body.font-mono { font-family: 'Courier New', Courier, monospace; }
+        body.font-serif { font-family: Cambria, Georgia, serif; }
+        body.font-elegant { font-family: 'Palatino Linotype', Palatino, serif; }
+        body.font-heavy { font-family: Impact, Haettenschweiler, 'Arial Narrow Bold', sans-serif; }
+        body.font-readable { font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body[class*="font-"] button, body[class*="font-"] input,
+        body[class*="font-"] select, body[class*="font-"] textarea { font-family: inherit; }
+
+        /* Темы оформления */
+        body.theme-parchment {
+            --paper-bg: #e6d5b8;
+            --paper-border: #3b2a1a;
+            --ink: #1a120b;
+            --ink-faded: #4a3828;
+            --body-bg: #2b1f14;
+        }
+
+        body.theme-dark {
+            --paper-bg: #181512;
+            --paper-border: #5e4835;
+            --ink: #d4c5b9;
+            --ink-faded: #8c7866;
+            --body-bg: #0d0a08;
+        }
+
+        body.theme-blood {
+            --paper-bg: #d1b2a5; --paper-border: #4d1c1c; --ink: #2b0808;
+            --ink-faded: #6e3030; --body-bg: #3b1010;
+        }
+        body.theme-gold {
+            --paper-bg:#241900; --paper-border:#ffd447; --ink:#ffe9a3;
+            --ink-faded:#e8b92e; --body-bg:#090700;
+        }
+        body.theme-ocean { --paper-bg:#d6f1f2; --paper-border:#075b70; --ink:#063846; --ink-faded:#287c8b; --body-bg:#092d3a; }
+        body.theme-forest { --paper-bg:#dce7c8; --paper-border:#31532a; --ink:#172b15; --ink-faded:#55734b; --body-bg:#122014; }
+        body.theme-purple { --paper-bg:#e6d9f4; --paper-border:#673b8d; --ink:#2b1240; --ink-faded:#8059a0; --body-bg:#1b0c29; }
+        body.theme-rose { --paper-bg:#ffe0e8; --paper-border:#a52f57; --ink:#4a1026; --ink-faded:#a34c6c; --body-bg:#35101f; }
+        body.theme-gold .parchment, body.theme-gold button, body.theme-gold .member-card {
+            box-shadow: 0 0 8px #ffd447, 0 0 22px rgba(255,212,71,.35), inset 0 0 18px rgba(255,212,71,.12);
+        }
+        /* Хеллоуинская тема MATRIX */
         body.theme-halloween {
-            --paper-bg: #21172b; --paper-border: #ff8a32; --ink: #fff3df;
-            --ink-faded: #ffb45f; --body-bg: #090710;
-            --ui-glow: rgba(255,116,35,.2);
+            --paper-bg: #20152a; --paper-border: #ff7518; --ink: #fff0d5;
+            --ink-faded: #ffad42; --body-bg: #0b0710;
         }
         body.theme-halloween .parchment {
-            background-image: radial-gradient(ellipse at 0% 0%, rgba(255,125,35,.14), transparent 38%),
-                              radial-gradient(ellipse at 100% 100%, rgba(130,70,220,.15), transparent 42%);
+            background-image: radial-gradient(circle at 15% 10%, rgba(255,117,24,.18), transparent 32%), radial-gradient(circle at 90% 90%, rgba(126,54,180,.22), transparent 35%);
+            box-shadow: 0 0 14px rgba(255,117,24,.28), inset 0 0 30px rgba(126,54,180,.12);
         }
-        body.theme-halloween .parchment::after { content: '🎃 👻 🦇'; position: absolute; top: 14px; right: 18px; font-size: 20px; opacity: .82; pointer-events: none; }
-        body.theme-halloween button { border-color: #ff8a32; }
-        body.theme-halloween .member-card, body.theme-halloween .profile-stat { border-color: #ff8a32; }
-        body.theme-halloween h1, body.theme-halloween h2, body.theme-halloween h3 { color: #ffad42; text-shadow: 0 2px 16px rgba(255,117,24,.16); }
-
-        .small-note { font-size:12px; opacity:.8; line-height: 1.5; }
-
-        body {
-            min-height: 100vh;
-            background-color: var(--body-bg);
-            color: var(--ink);
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            margin: 0;
-            padding: clamp(10px, 2.8vw, 28px);
-            display: flex;
-            justify-content: center;
-            line-height: 1.55;
-            background-image: radial-gradient(ellipse at 15% 0%, color-mix(in srgb, var(--paper-border) 28%, transparent), transparent 48%);
-            background-attachment: fixed;
-            transition: background-color 0.3s, color 0.3s;
-            box-sizing: border-box;
+        body.theme-halloween .parchment::after {
+            content: '🎃  👻  🦇'; position: absolute; top: 7px; right: 14px; font-size: 18px; pointer-events: none;
         }
+        body.theme-halloween button { border-color: #ff7518; }
+        body.theme-halloween .member-card, body.theme-halloween .profile-stat { border-color: #ff7518; }
+        body.theme-halloween h1, body.theme-halloween h2, body.theme-halloween h3 { color: #ffad42; text-shadow: 0 0 8px rgba(255,117,24,.25); }
 
-        .parchment {
-            background-color: var(--paper-bg);
-            border: 1px solid var(--paper-border);
-            border-radius: 22px;
-            box-shadow: 0 22px 60px rgba(0,0,0,.38), inset 0 1px rgba(255,255,255,.08);
-            width: 100%;
-            max-width: 920px;
-            padding: clamp(16px, 3.2vw, 30px);
-            box-sizing: border-box;
-            position: relative;
-            isolation: isolate;
-        }
-
-        .parchment::before {
-            content: '';
-            position: absolute;
-            inset: 7px;
-            border: 1px solid var(--paper-border);
-            border-radius: 15px;
-            pointer-events: none;
-            opacity: .16;
-        }
-
-        h1, h2, h3 {
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: .045em;
-            border-bottom: 2px solid var(--ink);
-            padding-bottom: 8px;
-            margin-top: 0;
-            line-height: 1.22;
-        }
-
-        .screen { display: none; }
-        .screen.active { display: block; }
-
-        input, select, button, textarea {
-            font-family: inherit;
-            background: transparent;
-            border: 1px solid color-mix(in srgb, var(--ink) 32%, transparent);
-            color: var(--ink);
-            padding: 11px 14px;
-            font-size: 14px;
-            outline: none;
-            box-sizing: border-box;
-            margin-bottom: 10px;
-            border-radius: var(--ui-radius-sm);
-        }
-
-        input, select {
-            width: 100%;
-            min-height: 44px;
-            background: color-mix(in srgb, var(--paper-bg) 82%, var(--body-bg));
-        }
-
-        button {
-            cursor: pointer;
-            font-weight: bold;
-            text-transform: uppercase;
-            width: 100%;
-            min-height: 42px;
-            border: 1px solid var(--paper-border);
-            border-radius: 12px;
-            background: linear-gradient(145deg, color-mix(in srgb, var(--paper-bg) 94%, white), var(--paper-bg));
-            box-shadow: 0 4px 0 color-mix(in srgb, var(--paper-border) 68%, var(--body-bg)), 0 8px 18px rgba(0,0,0,.12);
-        }
+        .small-note { font-size:12px; opacity:.8; }
+        .profile-stat { border:1px dashed var(--ink); padding:12px; margin:8px 0; }
+        .level-track { height:16px; border:2px solid var(--ink); background:rgba(0,0,0,.12); margin:8px 0; overflow:hidden; }
+        .level-fill { height:100%; width:0%; background:linear-gradient(90deg,#d69b00,#fff0a0); transition:width .25s; }
+        #account-screen { max-width:500px; margin:auto; }
+        .hidden { display:none !important; }
 
         .btn-install-pwa {
             background: linear-gradient(135deg, #ff7518, #ffad42);
@@ -136,23 +99,170 @@
             box-shadow: 0 0 15px rgba(255, 117, 24, 0.5);
             margin: 15px 0;
             padding: 14px;
+            width: 100%;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 12px;
         }
 
-        .tabs { display: flex; flex-wrap: wrap; gap: 7px; margin: 0 0 22px; }
-        .tabs button { min-height: 38px; flex: 1 1 90px; padding: 8px 10px; font-size: 11px; border-radius: 10px; }
-        .tabs button.active-tab { background: var(--ink); color: var(--paper-bg); border-color: var(--ink); box-shadow: 0 4px 12px rgba(0,0,0,.16); }
+        body {
+            background-color: var(--body-bg);
+            color: var(--ink);
+            font-family: 'Special Elite', cursive, monospace;
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            transition: background-color 0.3s, color 0.3s;
+        }
 
-        .class-box, .monster-box, .settings-box, .roulette-box {
-            border: 1px solid color-mix(in srgb, var(--paper-border) 76%, var(--ink));
-            border-radius: var(--ui-radius);
-            padding: 16px;
-            background: color-mix(in srgb, var(--paper-bg) 92%, var(--body-bg));
-            box-shadow: var(--ui-shadow);
+        .parchment {
+            background-color: var(--paper-bg);
+            background-image: radial-gradient(circle, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.12) 100%);
+            border: 4px solid var(--paper-border);
+            border-radius: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6), inset 0 0 40px rgba(80, 50, 20, 0.2);
+            width: 100%;
+            max-width: 650px;
+            padding: 20px;
+            box-sizing: border-box;
+            position: relative;
+            transition: background-color 0.3s, border-color 0.3s;
+        }
+
+        .parchment::before {
+            content: '';
+            position: absolute;
+            top: 4px; left: 4px; right: 4px; bottom: 4px;
+            border: 1px dashed var(--ink-faded);
+            pointer-events: none;
+            opacity: 0.6;
+        }
+
+        h1, h2, h3 {
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-bottom: 2px solid var(--ink);
+            padding-bottom: 8px;
+            margin-top: 0;
+        }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+
+        input, select, button {
+            font-family: 'Special Elite', cursive, monospace;
+            background: transparent;
+            border: 2px solid var(--ink);
+            color: var(--ink);
+            padding: 8px 12px;
+            font-size: 15px;
+            outline: none;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            transition: border-color 0.3s, color 0.3s;
+        }
+
+        input, select {
+            width: 100%;
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        button {
+            cursor: pointer;
+            font-weight: bold;
+            text-transform: uppercase;
+            width: 100%;
+            background-color: rgba(0,0,0,0.05);
+            transition: all 0.2s;
+            box-shadow: 2px 2px 0px var(--ink);
+        }
+
+        button:active {
+            transform: translate(2px, 2px);
+            box-shadow: none;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 3px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tabs button {
+            flex: 1;
+            padding: 4px;
+            font-size: 10px;
+        }
+        .tabs button.active-tab {
+            background-color: var(--ink);
+            color: var(--paper-bg);
+            box-shadow: none;
+        }
+
+        .member-card {
+            border: 2px dashed var(--ink);
+            padding: 12px;
             margin-bottom: 15px;
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .member-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 17px;
+            font-weight: bold;
+        }
+        .points-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .points-controls input {
+            margin-bottom: 0;
+            width: 70px;
+            text-align: center;
+        }
+        .points-controls button {
+            width: auto;
+            padding: 6px 10px;
+            margin-bottom: 0;
+        }
+        .class-badge {
+            font-size: 13px;
+            border: 1px solid var(--ink);
+            padding: 2px 6px;
+            background: rgba(0,0,0,0.05);
+            display: inline-block;
+            margin-top: 5px;
         }
 
-        .classes-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
-
+        .classes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+            align-items: stretch;
+        }
+        .class-box, .monster-box, .settings-box {
+            border: 2px solid var(--ink);
+            border-radius: 8px;
+            padding: 12px;
+            background: rgba(10, 5, 16, .72);
+            color: var(--ink);
+            margin-bottom: 0;
+            min-width: 0;
+            overflow: hidden;
+        }
+        .class-box h3, .monster-box h3, .settings-box h3 {
+            margin-top: 9px;
+            font-size: 17px;
+            text-align: left;
+            border-bottom: 1px solid var(--ink);
+            overflow-wrap: anywhere;
+        }
         .character-portrait {
             display: block;
             width: min(100%, 180px);
@@ -163,6 +273,7 @@
             border-radius: 10px;
             margin: 0 auto 10px;
             background: #120b18;
+            filter: saturate(1.08) contrast(1.04);
             box-shadow: 0 0 12px rgba(255,117,24,.28);
         }
 
@@ -175,222 +286,40 @@
             margin-bottom: 6px;
         }
 
-        .timer-display { font-size: clamp(2rem, 7vw, 3rem); text-align: center; border: 2px solid var(--ink); border-radius: 16px; padding: 15px; margin-bottom: 15px; font-weight: 750; }
-        .monster-name { font-size: clamp(1.25rem, 4vw, 1.65rem); font-weight: bold; color: #b22222; margin: 10px 0; min-height: 30px; text-align: center; }
-
-        .hidden { display: none !important; }
+        .timer-display {
+            font-size: 40px;
+            text-align: center;
+            border: 3px solid var(--ink);
+            padding: 15px;
+            background: rgba(0,0,0,0.05);
+            margin-bottom: 15px;
+            letter-spacing: 3px;
+        }
+        .roulette-box {
+            border: 2px dashed var(--ink);
+            padding: 15px;
+            text-align: center;
+            background: rgba(255,255,255,0.08);
+            margin-top: 15px;
+        }
+        .monster-name {
+            font-size: 24px;
+            font-weight: bold;
+            color: #b22222;
+            margin: 10px 0;
+            min-height: 30px;
+        }
     </style>
 </head>
 <body class="theme-halloween">
 
 <div class="parchment">
     
-    <!-- Экран Входа -->
     <div id="account-screen" class="screen active">
         <h1>Вход в аккаунт</h1>
-        <p>Создай аккаунт или войди, чтобы начать игру.</p>
+        <p>Создай аккаунт или войди, чтобы сохранить прогресс на этом устройстве.</p>
         
         <button id="pwa-install-btn-main" class="btn-install-pwa hidden" onclick="triggerPWAInstall()">📱 УСТАНОВИТЬ НА ТЕЛЕФОН</button>
 
-        <label>Никнейм</label><input id="account-name" placeholder="Придумай никнейм">
-        <label>Пароль</label><input id="account-password" type="password" placeholder="Пароль">
-        <button onclick="registerAccount()">Войти / Создать</button>
-    </div>
-
-    <!-- Главный экран -->
-    <div id="main-screen" class="screen">
-        <div class="tabs">
-            <button id="tab-btn-1" class="active-tab" onclick="switchTab(1)">1. Команда</button>
-            <button id="tab-btn-2" onclick="switchTab(2)">2. Классы</button>
-            <button id="tab-btn-3" onclick="switchTab(3)">3. Монстры</button>
-            <button id="tab-btn-4" onclick="switchTab(4)">4. Раунд</button>
-            <button id="tab-btn-5" onclick="switchTab(5)">5. Настройки</button>
-            <button id="tab-btn-6" onclick="switchTab(6)">6. Профиль</button>
-            <button id="tab-btn-7" onclick="switchTab(7)">7. Достижения</button>
-            <button id="tab-btn-8" onclick="switchTab(8)">8. Шар опыта</button>
-        </div>
-
-        <!-- Вкладка 1: Команда -->
-        <div id="tab-1" class="tab-content">
-            <h2>Лобби</h2>
-            <div class="settings-box">
-                <h3>Пригласить игрока</h3>
-                <input id="new-player-name" placeholder="Ник аккаунта игрока">
-                <button onclick="alert('Приглашение отправлено!')">Отправить приглашение</button>
-            </div>
-        </div>
-
-        <!-- Вкладка 2: Классы -->
-        <div id="tab-2" class="tab-content" style="display: none;">
-            <h2>Законники и Бродяги</h2>
-            <div class="classes-grid" id="reference-classes-container"></div>
-        </div>
-
-        <!-- Вкладка 3: Монстры -->
-        <div id="tab-3" class="tab-content" style="display: none;">
-            <h2>Бестиарий Монстров</h2>
-            <div class="classes-grid" id="reference-monsters-container"></div>
-        </div>
-
-        <!-- Вкладка 4: Раунд -->
-        <div id="tab-4" class="tab-content" style="display: none;">
-            <h2>Боевой Таймер</h2>
-            <div class="timer-display" id="timer-clock">15:00</div>
-            <button onclick="startRound()">Начать раунд (Колесо Фортуны)</button>
-            <button onclick="stopTimer()" style="margin-top: 5px;">Пауза / Сброс</button>
-
-            <div class="roulette-box">
-                <h3>Колесо Фортуны Монстра</h3>
-                <div class="monster-name" id="selected-monster">[ Ожидание старта ]</div>
-            </div>
-        </div>
-
-        <!-- Вкладка 5: Настройки -->
-        <div id="tab-5" class="tab-content" style="display: none;">
-            <h2>Настройки и Установка</h2>
-            <div class="settings-box">
-                <h3>📱 Мобильное приложение</h3>
-                <p>Установите WildWest MATRIX прямо на экран своего устройства.</p>
-                <button id="pwa-install-btn-settings" class="btn-install-pwa hidden" onclick="triggerPWAInstall()">Установить на устройство</button>
-            </div>
-        </div>
-
-        <!-- Вкладка 6: Профиль -->
-        <div id="tab-6" class="tab-content" style="display:none;">
-            <h2>Профиль игрока</h2>
-            <p>Вы вошли как: <b id="user-display-name">Игрок</b></p>
-            <button onclick="location.reload()">Выйти из аккаунта</button>
-        </div>
-
-        <!-- Вкладка 7: Достижения -->
-        <div id="tab-7" class="tab-content" style="display:none;">
-            <h2>🏆 Достижения</h2>
-            <p>⭐ Первый шаг — Создать аккаунт в игре</p>
-            <p>🎯 Стрелок — Начать первый раунд</p>
-        </div>
-
-        <!-- Вкладка 8: Шар опыта -->
-        <div id="tab-8" class="tab-content" style="display:none;">
-            <h2>🔮 Шар опыта</h2>
-            <div style="text-align:center;padding:20px 8px;">
-                <button id="xp-orb" onclick="tapExperienceOrb()" style="display:inline-flex;align-items:center;justify-content:center;width:140px;height:140px;border-radius:50%;border:4px solid #b7e8ff;background:radial-gradient(circle at 32% 25%,#ffffff 0%,#8ce8ff 8%,#3978ff 30%,#34106d 68%,#09051b 100%);box-shadow:0 0 18px #45caff;color:white;font-size:48px;cursor:pointer;">✦</button>
-                <div style="font-size:24px;font-weight:bold;margin-top:16px;">Всего: <span id="orb-xp-total">0.0</span> XP</div>
-                <p id="orb-status" role="status">Шар ждёт нажатия…</p>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    // --- 1. Данные Классов и Монстров ---
-    const classesData = [
-        { name: "Шериф", desc: "Служитель закона с револьвером. Повышенный урон по ночным монстрам.", abilities: ["Точный выстрел", "Арест нежити"] },
-        { name: "Охотник за головами", desc: "Меткий стрелок Дикого Запада. Получает бонус за зачистку монстров.", abilities: ["Метка цели", "Быстрый взвод"] },
-        { name: "Бродяга", desc: "Мастер скрытности и выживания в диких землях.", abilities: ["Теневой шаг", "Засада"] },
-        { name: "Шаман", desc: "Использует древнюю магию для исцеления и защиты отряда.", abilities: ["Тотем защиты", "Духовное исцеление"] }
-    ];
-
-    const monstersData = [
-        { name: "Оборотень", desc: "Быстрый монстр. Наносит критический урон во время лунного затмения.", abilities: ["Звериный прыжок", "Яростный вой"] },
-        { name: "Вампир", desc: "Высасывает жизненные силы у бойцов при каждой атаке.", abilities: ["Кровавый укус", "Летучая мышь"] },
-        { name: "Тыквенный Джек", desc: "Хеллоуинский босс. Призывает маленьких призраков.", abilities: ["Огненная тыква", "Ужас преисподней"] },
-        { name: "Вендиго", desc: "Дух голода. Становится сильнее с каждым потерянным ХП.", abilities: ["Ледяной холод", "Ненасытность"] }
-    ];
-
-    function renderReference() {
-        const classContainer = document.getElementById('reference-classes-container');
-        const monsterContainer = document.getElementById('reference-monsters-container');
-
-        if (classContainer) {
-            classContainer.innerHTML = classesData.map(c => `
-                <div class="class-box">
-                    <div class="character-portrait" style="display:flex;align-items:center;justify-content:center;font-size:40px;">🤠</div>
-                    <h3>${c.name}</h3>
-                    <p>${c.desc}</p>
-                    <ul class="ability-list">
-                        ${c.abilities.map(a => `<li>${a}</li>`).join('')}
-                    </ul>
-                </div>
-            `).join('');
-        }
-
-        if (monsterContainer) {
-            monsterContainer.innerHTML = monstersData.map(m => `
-                <div class="monster-box">
-                    <div class="character-portrait" style="display:flex;align-items:center;justify-content:center;font-size:40px;">🦇</div>
-                    <h3>${m.name}</h3>
-                    <p>${m.desc}</p>
-                    <ul class="ability-list">
-                        ${m.abilities.map(a => `<li>${a}</li>`).join('')}
-                    </ul>
-                </div>
-            `).join('');
-        }
-    }
-
-    // --- 2. Переключение вкладок ---
-    function switchTab(idx) {
-        document.querySelectorAll('.tab-content').forEach((el, i) => {
-            el.style.display = (i + 1 === idx) ? 'block' : 'none';
-        });
-        document.querySelectorAll('.tabs button').forEach((btn, i) => {
-            btn.classList.toggle('active-tab', (i + 1 === idx));
-        });
-    }
-
-    // --- 3. Аккаунт ---
-    function registerAccount() {
-        const name = document.getElementById('account-name').value.trim();
-        if(!name) return alert('Введите никнейм!');
-        
-        const displayElem = document.getElementById('user-display-name');
-        if (displayElem) displayElem.innerText = name;
-
-        document.getElementById('account-screen').classList.remove('active');
-        document.getElementById('main-screen').classList.add('active');
-        renderReference();
-    }
-
-    // --- 4. Логика Раунда и Шара XP ---
-    let orbXp = 0;
-    let lastTap = 0;
-
-    function tapExperienceOrb() {
-        const now = Date.now();
-        if (now - lastTap < 400) {
-            document.getElementById('orb-status').innerText = 'Слишком часто!';
-            return;
-        }
-        lastTap = now;
-        orbXp += 0.1;
-        document.getElementById('orb-xp-total').innerText = orbXp.toFixed(1);
-        document.getElementById('orb-status').innerText = '+0.1 XP!';
-    }
-
-    function startRound() {
-        const rand = monstersData[Math.floor(Math.random() * monstersData.length)].name;
-        document.getElementById('selected-monster').innerText = rand;
-    }
-
-    function stopTimer() {
-        document.getElementById('selected-monster').innerText = "[ Ожидание старта ]";
-    }
-
-    // --- 5. PWA Установка ---
-    let deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault();
-        deferredPrompt = e;
-        document.getElementById('pwa-install-btn-main')?.classList.remove('hidden');
-        document.getElementById('pwa-install-btn-settings')?.classList.remove('hidden');
-    });
-
-    function triggerPWAInstall() {
-        if (deferredPrompt) {
-            deferredPrompt.prompt();
-            deferredPrompt = null;
-        }
-    }
-</script>
-</body>
-</html>
+        <label>Никнейм</label><input id="account-name" autocomplete="username" placeholder="Придумай никнейм">
+        <label>Пароль</label><input id="account-password" type="password" autocomplete="current
