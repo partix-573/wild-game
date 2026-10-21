@@ -1,1 +1,188 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MATRIX Halloween — Комнаты</title>
+<style>
+body {
+  margin: 0;
+  padding: 24px;
+  background: #160d22;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+main {
+  max-width: 430px;
+  margin: auto;
+  background: #291638;
+  padding: 22px;
+  border-radius: 16px;
+  border: 1px solid #8b42ad;
+}
+h1 { color: #ff9d42; }
+input, button {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 13px;
+  margin: 7px 0;
+  border-radius: 9px;
+  font-size: 16px;
+}
+input {
+  background: #160d22;
+  color: white;
+  border: 1px solid #8b42ad;
+}
+button {
+  background: #a747d1;
+  color: white;
+  border: 0;
+  font-weight: bold;
+  cursor: pointer;
+}
+#status { color: #ffd18b; }
+#code { font-size: 27px; letter-spacing: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎃 MATRIX Halloween</h1>
+  <h3>Общие комнаты</h3>
 
+  <input id="name" maxlength="20"
+    placeholder="Твоё имя в игре">
+
+  <button id="create">Создать комнату</button>
+
+  <hr>
+
+  <input id="roomId" maxlength="10"
+    placeholder="ID комнаты">
+
+  <button id="join">Вступить в комнату</button>
+
+  <h2>ID комнаты</h2>
+  <div id="code">—</div>
+  <button id="copy">Копировать ID</button>
+
+  <h3>Игроки в комнате</h3>
+  <ul id="players"></ul>
+  <p id="status">Введи имя игрока.</p>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+let currentRoom = "";
+let currentName = "";
+let polling = false;
+
+async function request(action, extra = {}) {
+  const response = await fetch("/api/invite", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      action,
+      playerName: currentName,
+      roomId: currentRoom,
+      ...extra
+    })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok || !data.ok) {
+    throw new Error(data.error || "Ошибка сервера");
+  }
+
+  return data;
+}
+
+function getName() {
+  const name = $("name").value.trim();
+
+  if (!name) throw new Error("Сначала введи своё имя");
+
+  currentName = name;
+}
+
+async function refresh() {
+  if (!currentRoom || !polling) return;
+
+  try {
+    const data = await request("get");
+
+    $("players").replaceChildren();
+
+    data.room.players.forEach(name => {
+      const li = document.createElement("li");
+      li.textContent = name;
+      $("players").appendChild(li);
+    });
+
+    $("status").textContent = "Комната подключена";
+  } catch (error) {
+    $("status").textContent = error.message;
+  }
+
+  if (polling) setTimeout(refresh, 3000);
+}
+
+function startRoom(id) {
+  currentRoom = id;
+  $("roomId").value = id;
+  $("code").textContent = id;
+  polling = true;
+  refresh();
+}
+
+$("create").onclick = async () => {
+  try {
+    getName();
+    polling = false;
+
+    const data = await request("create");
+
+    $("status").textContent = "Комната создана!";
+    startRoom(data.roomId);
+  } catch (error) {
+    $("status").textContent = error.message;
+  }
+};
+
+$("join").onclick = async () => {
+  try {
+    getName();
+    polling = false;
+
+    currentRoom = $("roomId").value.trim().toUpperCase();
+
+    if (!currentRoom) {
+      throw new Error("Введи ID комнаты");
+    }
+
+    const data = await request("join");
+
+    $("status").textContent = "Ты вступил в комнату!";
+    startRoom(data.roomId);
+  } catch (error) {
+    $("status").textContent = error.message;
+  }
+};
+
+$("copy").onclick = async () => {
+  if (!currentRoom) {
+    $("status").textContent = "Сначала создай или открой комнату";
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(currentRoom);
+    $("status").textContent = "ID скопирован!";
+  } catch {
+    $("status").textContent = "Твой ID: " + currentRoom;
+  }
+};
+</script>
+</body>
+</html>
