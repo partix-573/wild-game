@@ -1171,11 +1171,17 @@
         teamData.forEach((player, index) => {
             const isSelf = player.accountKey === currentAccount;
             const canEditPlayer = owner || isSelf;
+            if (!player.selectedMonster) player.selectedMonster = 'Нет монстра';
             let classOptions = '';
             for (let cName in classesData) {
                 let selected = player.selectedClass === cName ? 'selected' : '';
                 const requirement = classesData[cName].minLevel ? `, уровень ${classesData[cName].minLevel}+` : '';
                 classOptions += `<option value="${cName}" ${selected}>${cName} (Цена: ${classesData[cName].cost}${requirement})</option>`;
+            }
+            let monsterOptions = '<option value="Нет монстра" ' + (player.selectedMonster === 'Нет монстра' ? 'selected' : '') + '>Нет монстра (0 монет)</option>';
+            for (let mName in monstersData) {
+                const selected = player.selectedMonster === mName ? 'selected' : '';
+                monsterOptions += `<option value="${mName}" ${selected}>${mName} (Цена: ${monstersData[mName].cost} монет)</option>`;
             }
             const moneyControls = owner ? `
                 <div class="points-controls" style="margin-top: 8px;">
@@ -1186,7 +1192,11 @@
                 <div>
                     Класс: <select onchange="changePlayerClass(${index}, this.value)">${classOptions}</select>
                 </div>
-                <div class="class-badge">Экипирован: <b>${player.selectedClass}</b></div>
+                <div class="class-badge">Экипирован класс: <b>${player.selectedClass}</b></div>
+                <div style="margin-top:8px;">
+                    Монстр: <select onchange="buyPlayerMonster(${index}, this.value)">${monsterOptions}</select>
+                </div>
+                <div class="class-badge">Выбранный монстр: <b>${player.selectedMonster || 'Нет монстра'}</b></div>
                 <div class="upgrade-section">
                     <strong>Прокачка (${player.selectedClass}):</strong><br>
                     <span>Кулдаун: -${player.upgrades.cooldownReduce} сек | Урон: +${player.upgrades.bonusDamage}</span><br>
@@ -1285,6 +1295,25 @@
             alert('Недостаточно монет для покупки класса! Нужно ' + cost + ' монет.');
             renderTeam();
         }
+    }
+
+    function buyPlayerMonster(index, monsterName) {
+        const player = teamData[index];
+        if (!player || (!isLobbyOwner() && player.accountKey !== currentAccount)) {
+            alert('Ты можешь покупать монстра только для своего персонажа.'); renderTeam(); return;
+        }
+        if (monsterName === 'Нет монстра') { player.selectedMonster = 'Нет монстра'; saveAccountProgress(); renderTeam(); return; }
+        const monster = monstersData[monsterName];
+        if (!monster) { renderTeam(); return; }
+        const cost = Number(monster.cost) || 0;
+        if ((Number(player.points) || 0) < cost) {
+            alert('Недостаточно монет для покупки монстра! Нужно ' + cost + ' монет.'); renderTeam(); return;
+        }
+        player.points -= cost;
+        player.selectedMonster = monsterName;
+        saveAccountProgress();
+        renderTeam();
+        alert('Ты купил монстра: ' + monsterName + '!');
     }
 
     function buyUpgrade(index, type) {
