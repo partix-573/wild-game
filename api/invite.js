@@ -1,46 +1,214 @@
+import { randomBytes } from "node:crypto";
+
+const MAX_PLAYERS = 8;
+const ROOM_TTL = 86400;
+const ROOM_PREFIX = "matrix:room:";
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "no-store");
 
   if (req.method === "OPTIONS") {
-    return res.status(200).end();
+    return res.status(204).end();
   }
 
   if (req.method !== "POST") {
     return res.status(405).json({
       ok: false,
-      error: "Use POST"
+      error: "Используй POST"
     });
   }
 
-  const { from, to, roomId } = req.body || {};
+  const redisUrl =
+    process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.REDIS_REST_URL;
 
-  if (
-    typeof from !== "string" ||
-    typeof to !== "string" ||
-    !from.trim() ||
-    !to.trim()
-  ) {
-    return res.status(400).json({
+  const redisToken =
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.REDIS_REST_TOKEN;
+
+  if (!redisUrl || !redisToken) {
+    return res.status(500).json({
       ok: false,
-      error: "Укажи имена отправителя и получателя"
+      error: "Не настроены переменные Redis в Vercel"
     });
   }
 
-  if (from.trim().toLowerCase() === to.trim().toLowerCase()) {
-    return res.status(400).json({
+  async function redis(...command) {
+    const response = await fetch(redisUrl, {
+      method: "POST",
+      headers: {
+        Authorization: Bearer ${redisToken},
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(command)
+    });
+
+    const text = await response.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(text);
+    } catch {
+      throw new Error("Некорректный ответ Redis");
+    }
+
+    if (!response.ok || data.error) {
+      throw new Error("Ошибка запроса Redis");
+    }
+
+    return data.result;
+  }
+
+  try {
+    let body = req.body || {};
+
+    if (typeof body === "string") {
+      try {
+        body = JSON.parse(body);
+      } catch {
+        return res.status(400).json({
+          ok: false,
+          error: "Некорректный JSON"
+        });
+      }
+    }
+
+    const { action } = body;
+
+    if (!["create", "join", "get"].includes(action)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Действие должно быть create, join или get"
+      });
+    }
+
+    const name = String(body.playerName || "")
+      .trim()
+      .slice(0, 20);
+
+    if (
+      (action === "create" || action === "join") &&
+      !name
+    ) {
+      return res.status(400).json({
+        ok: false,
+        error: "Введи имя игрока"
+      });
+    }
+
+    if (action === "create") {
+      let id;
+      let key;
+      let attempts = 0;
+
+      do {
+        id = randomBytes(5)
+          .toString("hex")
+          .slice(0, 6)
+          .toUpperCase();
+
+        key = ${ROOM_PREFIX}${id};
+        attempts++;
+
+        if (attempts > 5) {
+          throw new Error("Не удалось создать ID комнаты");
+        }
+      } while (await redis("EXISTS", key));
+
+      const room = {
+        id,
+        host: name,
+        players: [name],
+        createdAt: Date.now()
+      };
+
+      await redis(
+        "SET",
+        key,
+        JSON.stringify(room),
+        "EX",
+        ROOM_TTL,
+        "NX"
+      );
+
+      return res.status(200).json({
+        ok: true,
+        roomId: id,
+        room
+      });
+    }
+
+    const id = String(body.roomId || "")
+      .trim()
+      .toUpperCase();
+
+    if (!/^[A-F0-9]{6}$/.test(id)) {
+      return res.status(400).json({
+        ok: false,
+        error: "Неверный ID комнаты"
+      });
+    }
+
+    const key = ${ROOM_PREFIX}${id};
+    const saved = await redis("GET", key);
+
+    if (!saved) {
+      return res.status(404).json({
+        ok: false,
+        error: "Комната не найдена или истекла"
+      });
+    }
+
+    const room = JSON.parse(saved);
+
+    if (
+      !room ||
+      room.id !== id ||
+      !Array.isArray(room.players)
+    ) {
+      throw new Error("Некорректные данные комнаты");
+    }
+
+    if (action === "join") {
+      const alreadyJoined = room.players.some(
+        player =>
+          String(player).toLowerCase() === name.toLowerCase()
+      );
+
+      if (!alreadyJoined) {
+        if (room.players.length >= MAX_PLAYERS) {
+          return res.status(409).json({
+            ok: false,
+            error: "Комната заполнена"
+          });
+        }
+
+        room.players.push(name);
+        await redis(
+          "SET",
+          key,
+          JSON.stringify(room),
+          "EX",
+          ROOM_TTL
+        );
+      }
+    }
+
+    return res.status(200).json({
+      ok: true,
+      roomId: id,
+      room
+    });
+  } catch (error) {
+    console.error("MATRIX invite API error:", error);
+
+    return res.status(500).json({
       ok: false,
-      error: "Нельзя пригласить самого себя"
+      error: "Ошибка сервера. Проверь Redis и настройки проекта."
     });
   }
-
-  return res.status(200).json({
-    ok: true,
-    message: "Запрос приглашения принят",
-    from: from.trim(),
-    to: to.trim(),
-    roomId: roomId || null,
-    note: "Для доставки приглашения получателю требуется общее серверное хранилище."
-  });
 }
