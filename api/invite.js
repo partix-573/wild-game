@@ -1,8 +1,72 @@
 import { randomBytes } from "node:crypto";
 
 const MAX_PLAYERS = 8;
-const ROOM_TTL = 86400;
+const ROOM_TTL_SECONDS = 86400;
 const ROOM_PREFIX = "matrix:room:";
+
+function sendJson(res, status, data) {
+  return res.status(status).json(data);
+}
+
+function getUpstashConfig() {
+  const url =
+    process.env.UPSTASH_KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.REDIS_REST_URL;
+
+  const token =
+    process.env.UPSTASH_KV_REST_API_TOKEN ||
+    process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.REDIS_REST_TOKEN;
+
+  if (!url || !token) {
+    throw new Error("Missing Upstash REST URL or write token");
+  }
+
+  if (!/^https:\/\//i.test(url)) {
+    throw new Error("Upstash URL must use HTTPS");
+  }
+
+  return { url: url.replace(/\/+$/, ""), token };
+}
+
+async function redis(config, ...command) {
+  const response = await fetch(config.url, {
+    method: "POST",
+    headers: {
+      Authorization: Bearer ${config.token},
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(command)
+  });
+
+  const text = await response.text();
+  let data;
+
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(Upstash returned non-JSON (HTTP ${response.status}));
+  }
+
+  if (!response.ok || data.error) {
+    throw new Error(
+      Upstash request failed (HTTP ${response.status}): ${
+        data.error || "unknown error"
+      }
+    );
+  }
+
+  return data.result;
+}
+
+function normalizeName(value) {
+  return String(value || "").trim().slice(0, 20);
+}
+
+function normalizeRoomId(value) {
+  return String(value || "").trim().toUpperCase();
+}
 
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -15,192 +79,168 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== "POST") {
-    return res.status(405).json({
+    res.setHeader("Allow", "POST, OPTIONS");
+    return sendJson(res, 405, {
       ok: false,
       error: "Используй POST"
     });
   }
 
-  // Поддерживаем названия переменных Upstash из твоего проекта.
-  const redisUrl =
-    process.env.UPSTASH_REDIS_REST_URL ||
-    process.env.UPSTASH_KV_REST_API_URL ||
-    process.env.UPSTASH_REDIS_URL ||
-    process.env.REDIS_REST_URL;
+  let body = req.body || {};
 
-  const redisToken =
-    process.env.UPSTASH_REDIS_REST_TOKEN ||
-    process.env.UPSTASH_KV_REST_API_TOKEN ||
-    process.env.REDIS_REST_TOKEN;
+  if (typeof body === "string") {
+    try {
+      body = JSON.parse(body);
+    } catch {
+      return sendJson(res, 400, {
+        ok: false,
+        error: "Некорректный JSON"
+      });
+    }
+  }
 
-  if (!redisUrl || !redisToken) {
-    return res.status(500).json({
+  if (!body  typeof body !== "object"  Array.isArray(body)) {
+    return sendJson(res, 400, {
       ok: false,
-      error: "Не найдены URL или токен Upstash. Проверь Environment Variables."
+      error: "Тело запроса должно быть JSON-объектом"
     });
   }
 
-  async function redis(...command) {
-    const response = await fetch(redisUrl, {
-      method: "POST",
-      headers: {
-        Authorization: Bearer ${redisToken},
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(command)
+  const action = String(body.action || "").trim().toLowerCase();
+
+  if (!["create", "join", "get"].includes(action)) {
+    return sendJson(res, 400, {
+      ok: false,
+      error: "Действие должно быть create, join или get"
     });
+  }
 
-    const text = await response.text();
-    let data;
+  const playerName = normalizeName(body.playerName);
 
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error("Upstash вернул неправильный ответ");
-    }
+  if ((action === "create" || action === "join") && !playerName) {
+    return sendJson(res, 400, {
+      ok: false,
+      error: "Введи имя игрока"
+    });
+  }
 
-    if (!response.ok || data.error) {
-      throw new Error("Запрос к Upstash не выполнен");
-    }
+  const roomId = normalizeRoomId(body.roomId);
 
-    return data.result;
+  if (action !== "create" && !/^[A-F0-9]{6}$/.test(roomId)) {
+    return sendJson(res, 400, {
+      ok: false,
+      error: "Неверный ID комнаты"
+    });
   }
 
   try {
-    let body = req.body || {};
-
-    if (typeof body === "string") {
-      try {
-        body = JSON.parse(body);
-      } catch {
-        return res.status(400).json({
-          ok: false,
-          error: "Некорректный JSON"
-        });
-      }
-    }
-
-    const action = body.action;
-
-    if (!["create", "join", "get"].includes(action)) {
-      return res.status(400).json({
-        ok: false,
-        error: "Действие должно быть create, join или get"
-      });
-    }
-
-    const name = String(body.playerName || "")
-      .trim()
-      .slice(0, 20);
-
-    if ((action === "create" || action === "join") && !name) {
-      return res.status(400).json({
-        ok: false,
-        error: "Введи имя игрока"
-      });
-    }
+    const config = getUpstashConfig();
 
     if (action === "create") {
-      let id;
-      let key;
-      let attempts = 0;
+      for (let attempt = 0; attempt < 10; attempt++) {
+        const id = randomBytes(4)
+          .toString("hex")
+          .slice(0, 6)
+          .toUpperCase();
 
-      do {
-        id = randomBytes(5).toString("hex").slice(0, 6).toUpperCase();
-        key = ${ROOM_PREFIX}${id};
-        attempts++;
+        const key = ${ROOM_PREFIX}${id};
 
-        if (attempts > 10) {
-          throw new Error("Не удалось создать ID комнаты");
+        const room = {
+          id,
+          host: playerName,
+          players: [playerName],
+          createdAt: Date.now()
+        };
+
+        const result = await redis(
+          config,
+          "SET",
+          key,
+          JSON.stringify(room),
+          "EX",
+          String(ROOM_TTL_SECONDS),
+          "NX"
+        );
+
+        if (result === "OK") {
+          return sendJson(res, 200, {
+            ok: true,
+            roomId: id,
+            room
+          });
         }
-      } while (await redis("EXISTS", key));
-
-      const room = {
-        id,
-        host: name,
-        players: [name],
-        createdAt: Date.now()
-      };
-
-      const saved = await redis(
-        "SET",
-        key,
-        JSON.stringify(room),
-        "EX",
-        ROOM_TTL,
-        "NX"
-      );
-
-      if (saved !== "OK") {
-        throw new Error("Не удалось сохранить комнату");
       }
 
-      return res.status(200).json({
-        ok: true,
-        roomId: id,
-        room
-      });
-    }
-
-    const id = String(body.roomId || "").trim().toUpperCase();
-
-    if (!/^[A-F0-9]{6}$/.test(id)) {
-      return res.status(400).json({
-        ok: false,
-        error: "Неверный ID комнаты"
-      });
-    }
-
-    const key = ${ROOM_PREFIX}${id};
-    const savedRoom = await redis("GET", key);
+      throw new Error("Could not allocate a unique room ID");
+    } const key = ${ROOM_PREFIX}${roomId};
+    const savedRoom = await redis(config, "GET", key);
 
     if (!savedRoom) {
-      return res.status(404).json({
+      return sendJson(res, 404, {
         ok: false,
-        error: "Комната не найдена или истекла"
+        error: "Комната не найдена или срок её действия истёк"
       });
     }
 
-    const room = JSON.parse(savedRoom);
+    let room;
+
+    try {
+      room = typeof savedRoom === "string"
+        ? JSON.parse(savedRoom)
+        : savedRoom;
+    } catch {
+      throw new Error("Stored room data is invalid JSON");
+    }
 
     if (!room || !Array.isArray(room.players)) {
-      throw new Error("Некорректные данные комнаты");
+      throw new Error("Stored room data has an invalid format");
     }
 
     if (action === "join") {
       const alreadyJoined = room.players.some(
-        player => String(player).toLowerCase() === name.toLowerCase()
-      );if (!alreadyJoined) {
+        player =>
+          String(player).toLowerCase() === playerName.toLowerCase()
+      );
+
+      if (!alreadyJoined) {
         if (room.players.length >= MAX_PLAYERS) {
-          return res.status(409).json({
+          return sendJson(res, 409, {
             ok: false,
             error: "Комната заполнена"
           });
         }
 
-        room.players.push(name);
+        room.players.push(playerName);
 
-        await redis(
+        const result = await redis(
+          config,
           "SET",
           key,
           JSON.stringify(room),
           "EX",
-          ROOM_TTL
+          String(ROOM_TTL_SECONDS)
         );
+
+        if (result !== "OK") {
+          throw new Error("Could not update room");
+        }
       }
     }
 
-    return res.status(200).json({
+    return sendJson(res, 200, {
       ok: true,
-      roomId: id,
+      roomId,
       room
     });
   } catch (error) {
-    console.error("MATRIX API error:", error);
+    console.error(
+      "MATRIX API error:",
+      error instanceof Error ? error.message : error
+    );
 
-    return res.status(500).json({
+    return sendJson(res, 500, {
       ok: false,
-      error: "Ошибка Redis/Upstash. Проверь URL, токен и доступ к базе."
+      error: "Ошибка сервера при работе с Upstash. Проверь журналы Vercel."
     });
   }
 }
