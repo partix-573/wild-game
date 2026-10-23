@@ -47,7 +47,6 @@ export default async function handler(req, res) {
     });
 
     const text = await response.text();
-
     let data;
 
     try {
@@ -77,7 +76,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const { action } = body;
+    const action = body.action;
 
     if (!["create", "join", "get"].includes(action)) {
       return res.status(400).json({
@@ -90,10 +89,7 @@ export default async function handler(req, res) {
       .trim()
       .slice(0, 20);
 
-    if (
-      (action === "create" || action === "join") &&
-      !name
-    ) {
+    if ((action === "create" || action === "join") && !name) {
       return res.status(400).json({
         ok: false,
         error: "Введи имя игрока"
@@ -126,7 +122,7 @@ export default async function handler(req, res) {
         createdAt: Date.now()
       };
 
-      await redis(
+      const result = await redis(
         "SET",
         key,
         JSON.stringify(room),
@@ -134,6 +130,10 @@ export default async function handler(req, res) {
         ROOM_TTL,
         "NX"
       );
+
+      if (result !== "OK") {
+        throw new Error("Не удалось сохранить комнату");
+      }
 
       return res.status(200).json({
         ok: true,
@@ -178,7 +178,6 @@ export default async function handler(req, res) {
         player =>
           String(player).toLowerCase() === name.toLowerCase()
       );
-
       if (!alreadyJoined) {
         if (room.players.length >= MAX_PLAYERS) {
           return res.status(409).json({
@@ -188,6 +187,7 @@ export default async function handler(req, res) {
         }
 
         room.players.push(name);
+
         await redis(
           "SET",
           key,
