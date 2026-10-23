@@ -21,18 +21,22 @@ export default async function handler(req, res) {
     });
   }
 
+  // Поддерживаем названия переменных Upstash из твоего проекта.
   const redisUrl =
     process.env.UPSTASH_REDIS_REST_URL ||
+    process.env.UPSTASH_KV_REST_API_URL ||
+    process.env.UPSTASH_REDIS_URL ||
     process.env.REDIS_REST_URL;
 
   const redisToken =
     process.env.UPSTASH_REDIS_REST_TOKEN ||
+    process.env.UPSTASH_KV_REST_API_TOKEN ||
     process.env.REDIS_REST_TOKEN;
 
   if (!redisUrl || !redisToken) {
     return res.status(500).json({
       ok: false,
-      error: "Не настроены переменные Redis в Vercel"
+      error: "Не найдены URL или токен Upstash. Проверь Environment Variables."
     });
   }
 
@@ -52,11 +56,11 @@ export default async function handler(req, res) {
     try {
       data = JSON.parse(text);
     } catch {
-      throw new Error("Некорректный ответ Redis");
+      throw new Error("Upstash вернул неправильный ответ");
     }
 
     if (!response.ok || data.error) {
-      throw new Error("Ошибка запроса Redis");
+      throw new Error("Запрос к Upstash не выполнен");
     }
 
     return data.result;
@@ -102,15 +106,11 @@ export default async function handler(req, res) {
       let attempts = 0;
 
       do {
-        id = randomBytes(5)
-          .toString("hex")
-          .slice(0, 6)
-          .toUpperCase();
-
+        id = randomBytes(5).toString("hex").slice(0, 6).toUpperCase();
         key = ${ROOM_PREFIX}${id};
         attempts++;
 
-        if (attempts > 5) {
+        if (attempts > 10) {
           throw new Error("Не удалось создать ID комнаты");
         }
       } while (await redis("EXISTS", key));
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         createdAt: Date.now()
       };
 
-      const result = await redis(
+      const saved = await redis(
         "SET",
         key,
         JSON.stringify(room),
@@ -131,7 +131,7 @@ export default async function handler(req, res) {
         "NX"
       );
 
-      if (result !== "OK") {
+      if (saved !== "OK") {
         throw new Error("Не удалось сохранить комнату");
       }
 
@@ -142,9 +142,7 @@ export default async function handler(req, res) {
       });
     }
 
-    const id = String(body.roomId || "")
-      .trim()
-      .toUpperCase();
+    const id = String(body.roomId || "").trim().toUpperCase();
 
     if (!/^[A-F0-9]{6}$/.test(id)) {
       return res.status(400).json({
@@ -154,31 +152,25 @@ export default async function handler(req, res) {
     }
 
     const key = ${ROOM_PREFIX}${id};
-    const saved = await redis("GET", key);
+    const savedRoom = await redis("GET", key);
 
-    if (!saved) {
+    if (!savedRoom) {
       return res.status(404).json({
         ok: false,
         error: "Комната не найдена или истекла"
       });
     }
 
-    const room = JSON.parse(saved);
+    const room = JSON.parse(savedRoom);
 
-    if (
-      !room ||
-      room.id !== id ||
-      !Array.isArray(room.players)
-    ) {
+    if (!room || !Array.isArray(room.players)) {
       throw new Error("Некорректные данные комнаты");
     }
 
     if (action === "join") {
       const alreadyJoined = room.players.some(
-        player =>
-          String(player).toLowerCase() === name.toLowerCase()
-      );
-      if (!alreadyJoined) {
+        player => String(player).toLowerCase() === name.toLowerCase()
+      );if (!alreadyJoined) {
         if (room.players.length >= MAX_PLAYERS) {
           return res.status(409).json({
             ok: false,
@@ -204,11 +196,11 @@ export default async function handler(req, res) {
       room
     });
   } catch (error) {
-    console.error("MATRIX invite API error:", error);
+    console.error("MATRIX API error:", error);
 
     return res.status(500).json({
       ok: false,
-      error: "Ошибка сервера. Проверь Redis и настройки проекта."
+      error: "Ошибка Redis/Upstash. Проверь URL, токен и доступ к базе."
     });
   }
 }
