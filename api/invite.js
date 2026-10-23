@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+const { randomBytes } = require("crypto");
 
 const MAX_PLAYERS = 8;
 const ROOM_TTL_SECONDS = 86400;
@@ -20,7 +20,7 @@ function getUpstashConfig() {
     process.env.REDIS_REST_TOKEN;
 
   if (!url || !token) {
-    throw new Error("Missing Upstash REST URL or write token");
+    throw new Error("Missing Upstash URL or write token");
   }
 
   if (!/^https:\/\//i.test(url)) {
@@ -46,14 +46,12 @@ async function redis(config, ...command) {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new Error(Upstash returned non-JSON (HTTP ${response.status}));
+    throw new Error(Upstash returned invalid JSON: HTTP ${response.status});
   }
 
   if (!response.ok || data.error) {
     throw new Error(
-      Upstash request failed (HTTP ${response.status}): ${
-        data.error || "unknown error"
-      }
+      Upstash error: ${data.error || response.status}
     );
   }
 
@@ -68,7 +66,7 @@ function normalizeRoomId(value) {
   return String(value || "").trim().toUpperCase();
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
@@ -102,11 +100,13 @@ export default async function handler(req, res) {
   if (!body  typeof body !== "object"  Array.isArray(body)) {
     return sendJson(res, 400, {
       ok: false,
-      error: "Тело запроса должно быть JSON-объектом"
+      error: "Некорректное тело запроса"
     });
   }
 
   const action = String(body.action || "").trim().toLowerCase();
+  const playerName = normalizeName(body.playerName);
+  const roomId = normalizeRoomId(body.roomId);
 
   if (!["create", "join", "get"].includes(action)) {
     return sendJson(res, 400, {
@@ -115,16 +115,12 @@ export default async function handler(req, res) {
     });
   }
 
-  const playerName = normalizeName(body.playerName);
-
   if ((action === "create" || action === "join") && !playerName) {
     return sendJson(res, 400, {
       ok: false,
       error: "Введи имя игрока"
     });
   }
-
-  const roomId = normalizeRoomId(body.roomId);
 
   if (action !== "create" && !/^[A-F0-9]{6}$/.test(roomId)) {
     return sendJson(res, 400, {
@@ -143,8 +139,6 @@ export default async function handler(req, res) {
           .slice(0, 6)
           .toUpperCase();
 
-        const key = ${ROOM_PREFIX}${id};
-
         const room = {
           id,
           host: playerName,
@@ -155,7 +149,7 @@ export default async function handler(req, res) {
         const result = await redis(
           config,
           "SET",
-          key,
+          ${ROOM_PREFIX}${id},
           JSON.stringify(room),
           "EX",
           String(ROOM_TTL_SECONDS),
@@ -171,11 +165,11 @@ export default async function handler(req, res) {
         }
       }
 
-      throw new Error("Could not allocate a unique room ID");
-    } const key = ${ROOM_PREFIX}${roomId};
-    const savedRoom = await redis(config, "GET", key);
+      throw new Error("Could not create a unique room ID");
+    }
 
-    if (!savedRoom) {
+    const key = ${ROOM_PREFIX}${roomId};
+    const savedRoom = await redis(config, "GET", key);if (!savedRoom) {
       return sendJson(res, 404, {
         ok: false,
         error: "Комната не найдена или срок её действия истёк"
@@ -189,11 +183,11 @@ export default async function handler(req, res) {
         ? JSON.parse(savedRoom)
         : savedRoom;
     } catch {
-      throw new Error("Stored room data is invalid JSON");
+      throw new Error("Invalid saved room data");
     }
 
     if (!room || !Array.isArray(room.players)) {
-      throw new Error("Stored room data has an invalid format");
+      throw new Error("Invalid room format");
     }
 
     if (action === "join") {
@@ -212,7 +206,7 @@ export default async function handler(req, res) {
 
         room.players.push(playerName);
 
-        const result = await redis(
+        await redis(
           config,
           "SET",
           key,
@@ -220,10 +214,6 @@ export default async function handler(req, res) {
           "EX",
           String(ROOM_TTL_SECONDS)
         );
-
-        if (result !== "OK") {
-          throw new Error("Could not update room");
-        }
       }
     }
 
@@ -240,7 +230,7 @@ export default async function handler(req, res) {
 
     return sendJson(res, 500, {
       ok: false,
-      error: "Ошибка сервера при работе с Upstash. Проверь журналы Vercel."
+      error: "Ошибка сервера. Проверь настройки Upstash и журналы Vercel."
     });
   }
-}
+};
